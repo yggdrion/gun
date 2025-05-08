@@ -1,0 +1,13 @@
+version: 2
+enable-beta-ecosystems: true
+updates:
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    assignees:
+      - "r4b2"
+    groups:
+      bun:
+        patterns:
+          - "*"

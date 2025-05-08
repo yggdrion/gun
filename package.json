@@ -1,0 +1,17 @@
+{
+    "name": "gun",
+    "module": "index.ts",
+    "type": "module",
+    "devDependencies": {
+        "@types/bun": "latest"
+    },
+    "peerDependencies": {
+        "typescript": "^5.7.3"
+    },
+    "dependencies": {
+        "@inquirer/prompts": "^7.5.0",
+        "open": "^10.1.2",
+        "ora": "^8.2.0",
+        "prettier": "^3.5.3"
+    }
+}
