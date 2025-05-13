@@ -131,7 +131,11 @@ if (isDefaultBranch) {
         })
 
         const createPr = await confirm({ message: 'Create PR?', default: true })
-        const enableAutoMerge = await confirm({ message: 'Enable auto merge?', default: true })
+
+        let enableAutoMerge = false
+        if (createPr) {
+            enableAutoMerge = await confirm({ message: 'Enable auto merge?', default: true })
+        }
         const backToDefault = await confirm({ message: `Back to ${baseBranch}?`, default: true })
 
         let deleteBranch = false
