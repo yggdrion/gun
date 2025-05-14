@@ -4,6 +4,8 @@
 import { input, confirm, select, Separator } from '@inquirer/prompts'
 import { $ } from 'bun'
 import { parseArgs } from 'util'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 
 const requiredCommands = ['git', 'gh']
 const missingCommands = []
@@ -101,15 +103,41 @@ const isDefaultBranch = baseBranch === 'main' || baseBranch === 'master' || base
 if (!isDefaultBranch) {
     //console.log('Current branch no base branch')
 
-    const wipIt = await confirm({ message: 'wip?', default: true })
+    const funnyWip = await confirm({ message: 'funny commit?', default: true })
+    
+    if (funnyWip) {
+        const baseDir = path.dirname(process.argv[1])
+        const commitMessageFile = `${baseDir}/commit_messages.txt`
+        const commitMessageFileLines = await readFile(commitMessageFile, 'utf-8')
+            .then((data) => {                
+                const lines = data.split('\n').filter(line => !line.startsWith('#') && line.trim() !== '')
+                return lines
 
-    if (wipIt) {
+            })
+            .catch((err) => {
+                console.error('Error reading file:', err)
+                process.exit(1)
+            })
+        const randomLineIndex = Math.floor(Math.random() * commitMessageFileLines.length)
+        const funnyCommitMessage = commitMessageFileLines[randomLineIndex].trim()
+
         await $`git add .`.quiet()
-        console.log('📂 Staged all changes')
-        await $`git commit -m "wip"`.quiet()
-        console.log('📝 Commit message: wip')
+        console.log('📂\tStaged all changes')
+        await $`git commit -m "${funnyCommitMessage}"`.quiet()
+        console.log('📝\tCommit message:', funnyCommitMessage)
         await $`git push`.quiet()
-        console.log('🚀 Pushed changes to remote')
+        console.log('🚀\tPushed changes to remote')
+    } else {
+        const wipIt = await confirm({ message: 'wip?', default: true })
+
+        if (wipIt) {
+            await $`git add .`.quiet()
+            console.log('📂 Staged all changes')
+            await $`git commit -m "wip"`.quiet()
+            console.log('📝 Commit message: wip')
+            await $`git push`.quiet()
+            console.log('🚀 Pushed changes to remote')
+        }
     }
 }
 
@@ -156,21 +184,29 @@ if (isDefaultBranch) {
         console.log('🚀 Pushed branch to remote:', fixedBranchName)
 
         if (createPr) {
-            const outputPrCreate = await $`gh pr create -f -B ${baseBranch}`.text()
-            const trimmedOutput = outputPrCreate.trim()
+            const outputPrCreate = await $`gh pr create -f -B ${baseBranch}`.nothrow()
+
+            if (outputPrCreate.exitCode !== 0) {
+                console.log('🚨 Could not create PR')
+                console.log(`🚨 PR create stdout: ${outputPrCreate.stdout}`)
+                console.log(`🚨 PR create stderr: ${outputPrCreate.stderr}`)
+                process.exit(1)
+            }
+
+            const trimmedOutput = outputPrCreate.text().trim()
             console.log(`🔗 Created PR: ${trimmedOutput}`)
 
             await copyToClipboard(trimmedOutput)
             console.log('📋 Copied PR URL to clipboard')
 
-            const prNumber = outputPrCreate.toString().replace(/\n/g, '').trim().split('/').pop()
+            const prNumber = outputPrCreate.text().toString().replace(/\n/g, '').trim().split('/').pop()
 
             if (enableAutoMerge) {
                 const autoMergeResult = await $`gh pr merge --auto --squash ${prNumber}`.nothrow().quiet()
                 if (autoMergeResult.exitCode === 0) {
                     console.log('👋 Enabled auto-merge')
                 } else {
-                    console.log('👎 Could no enable auto-merge')
+                    console.log('👎 Could not enable auto-merge')
                 }
             }
         }
