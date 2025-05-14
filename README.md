@@ -28,4 +28,4 @@ alias gun="bun run /Users/USERNAME/gun/index.ts"
 - [ ] checkout main and pull
 - [ ] check for binaries (gh, git, ...)
 - [ ] recommend commit message based on file changes
-- [ ] rnd WIPs
+- [ x ] rnd WIPs
