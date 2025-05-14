@@ -107,7 +107,7 @@ if (!isDefaultBranch) {
     
     if (funnyWip) {
         const baseDir = path.dirname(process.argv[1])
-        const commitMessageFile = `${baseDir}/commit_title`
+        const commitMessageFile = `${baseDir}/commit_messages.txt`
         const commitMessageFileLines = await readFile(commitMessageFile, 'utf-8')
             .then((data) => {                
                 const lines = data.split('\n').filter(line => !line.startsWith('#') && line.trim() !== '')
