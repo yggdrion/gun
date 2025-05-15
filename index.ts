@@ -6,6 +6,43 @@ import { $ } from 'bun'
 import { parseArgs } from 'util'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { exit } from 'node:process'
+
+// gun conf is in ~/.gun.conf
+// CREATE_PR=true
+// FUNNY_COMMIT=true
+// AUTO_MERGE=true
+// BACK_TO_MAIN=true
+// DELETE_BRANCH=true
+
+const configFile = path.join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
+
+const configFileExists = await readFile(configFile, 'utf-8')
+    .then(() => true)
+    .catch(() => false)
+
+if (!configFileExists) {
+    console.log('🔫 Setting up g(itb)un 🔫')
+    const createConfigFile = await confirm({
+        message: 'Create config file?',
+        default: true,
+    })
+    if (createConfigFile) {
+        // prettier-ignore
+        const configContent =
+`CREATE_PR=true
+FUNNY_COMMIT=true
+AUTO_MERGE=true
+BACK_TO_MAIN=true
+DELETE_BRANCH=true`
+        await Bun.write(configFile, configContent)
+        console.log('Config file created:', configFile)
+        // exit(0)
+        exit(0)
+    } else {
+        console.log('Config file not created')
+    }
+}
 
 // https://github.com/SBoudrias/Inquirer.js/issues/1478
 if (process.platform === 'win32') {
@@ -45,7 +82,12 @@ async function checkBinaries() {
     const requiredCommands = ['git', 'gh']
     const missingCommands = []
     for (const command of requiredCommands) {
-        const commandOutput = await $`command -v ${command}`.quiet().nothrow()
+        let commandOutput
+        if (process.platform === 'win32') {
+            commandOutput = await $`where ${command}`.quiet().nothrow()
+        } else {
+            commandOutput = await $`command -v ${command}`.quiet().nothrow()
+        }
         if (commandOutput.exitCode !== 0) {
             missingCommands.push(command)
         }
