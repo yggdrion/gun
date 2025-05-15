@@ -72,6 +72,23 @@ if (values.debug) {
     fs.writeFileSync('README.md', `${readme}#`)
 }
 
+async function checkBinaries() {
+    const requiredCommands = ['git', 'gh']
+    const missingCommands = []
+    for (const command of requiredCommands) {
+        const commandOutput = await $`command -v ${command}`.quiet().nothrow()
+        if (commandOutput.exitCode !== 0) {
+            missingCommands.push(command)
+        }
+    }
+    if (missingCommands.length > 0) {
+        console.error('Missing required commands:', missingCommands.join(', '))
+        console.error('Please install and configure them and try again.')
+        process.exit(1)
+    }
+}
+await checkBinaries()
+
 const pwdOutput = await $`pwd`.text()
 const pwd = pwdOutput.trim()
 
@@ -104,15 +121,14 @@ if (!isDefaultBranch) {
     //console.log('Current branch no base branch')
 
     const funnyWip = await confirm({ message: 'funny commit?', default: true })
-    
+
     if (funnyWip) {
         const baseDir = path.dirname(process.argv[1])
         const commitMessageFile = `${baseDir}/commit_messages.txt`
         const commitMessageFileLines = await readFile(commitMessageFile, 'utf-8')
-            .then((data) => {                
-                const lines = data.split('\n').filter(line => !line.startsWith('#') && line.trim() !== '')
+            .then((data) => {
+                const lines = data.split('\n').filter((line) => !line.startsWith('#') && line.trim() !== '')
                 return lines
-
             })
             .catch((err) => {
                 console.error('Error reading file:', err)
@@ -212,14 +228,14 @@ if (isDefaultBranch) {
         }
 
         if (backToDefault) {
-            console.log(`🔙 Back to ${baseBranch}`)
+            console.log(`🔙 Back to ${baseBranch} `)
             await $`git checkout ${baseBranch}`.quiet().text()
         }
 
         if (deleteBranch) {
             if (deleteBranch) {
                 await $`git branch -d ${fixedBranchName}`.quiet()
-                console.log('🗑️ Deleted branch:', fixedBranchName)
+                console.log('🗑️  Deleted branch:', fixedBranchName)
             }
         }
     }
