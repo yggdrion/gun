@@ -8,6 +8,19 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { exit } from 'node:process'
 
+// https://github.com/SBoudrias/Inquirer.js/issues/1478
+if (process.platform === 'win32') {
+    const readline = await import('node:readline')
+    readline
+        .createInterface({
+            input: process.stdin,
+            output: process.stdout,
+        })
+        .on('SIGINT', () => {
+            process.emit('SIGINT')
+        })
+}
+
 // gun conf is in ~/.gun.conf
 // CREATE_PR=true
 // FUNNY_COMMIT=true
@@ -42,19 +55,6 @@ DELETE_BRANCH=true`
     } else {
         console.log('Config file not created')
     }
-}
-
-// https://github.com/SBoudrias/Inquirer.js/issues/1478
-if (process.platform === 'win32') {
-    const readline = await import('node:readline')
-    readline
-        .createInterface({
-            input: process.stdin,
-            output: process.stdout,
-        })
-        .on('SIGINT', () => {
-            process.emit('SIGINT')
-        })
 }
 
 async function copyToClipboard(text: string) {
@@ -100,6 +100,8 @@ async function checkBinaries() {
 }
 
 await checkBinaries()
+
+exit(0)
 
 const { values, positionals } = parseArgs({
     args: Bun.argv,
