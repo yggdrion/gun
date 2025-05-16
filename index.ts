@@ -7,6 +7,7 @@ import { parseArgs } from 'util'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { exit } from 'node:process'
+import { dedent } from '@qnighy/dedent'
 
 // https://github.com/SBoudrias/Inquirer.js/issues/1478
 if (process.platform === 'win32') {
@@ -21,6 +22,18 @@ if (process.platform === 'win32') {
         })
 }
 
+const logo = `
+🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
+
+ ██████  ██    ██ ███    ██ 
+██       ██    ██ ████   ██ 
+██   ███ ██    ██ ██ ██  ██ 
+██    ██ ██    ██ ██  ██ ██ 
+ ██████   ██████  ██   ████ 
+
+🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
+`
+
 // gun conf is in ~/.gun.conf
 // CREATE_PR=true
 // FUNNY_COMMIT=true
@@ -28,34 +41,86 @@ if (process.platform === 'win32') {
 // BACK_TO_MAIN=true
 // DELETE_BRANCH=true
 
-const configFile = path.join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
+// const configFileExists = await readFile(configFile, 'utf-8')
+//     .then(() => true)
+//     .catch(() => false)
 
-const configFileExists = await readFile(configFile, 'utf-8')
-    .then(() => true)
-    .catch(() => false)
+// if (!configFileExists) {
+//     console.log(logo)
+//     const createConfigFile = await confirm({
+//         message: 'Create config file?',
+//         default: true,
+//     })
+//     if (createConfigFile) {
+//         // prettier-ignore
+//         const configContent =
+// `CREATE_PR=true
+// FUNNY_COMMIT=true
+// AUTO_MERGE=true
+// BACK_TO_MAIN=true
+// DELETE_BRANCH=true
+// `
+//         await Bun.write(configFile, configContent)
+//         console.log('Config file created:', configFile)
+//         // exit(0)
+//         exit(0)
+//     } else {
+//         console.log('Config file not created')
+//     }
+// }
 
-if (!configFileExists) {
-    console.log('🔫 Setting up g(itb)un 🔫')
-    const createConfigFile = await confirm({
-        message: 'Create config file?',
-        default: true,
-    })
-    if (createConfigFile) {
-        // prettier-ignore
-        const configContent =
-`CREATE_PR=true
-FUNNY_COMMIT=true
-AUTO_MERGE=true
-BACK_TO_MAIN=true
-DELETE_BRANCH=true`
-        await Bun.write(configFile, configContent)
-        console.log('Config file created:', configFile)
-        // exit(0)
-        exit(0)
-    } else {
-        console.log('Config file not created')
+async function loadConfig() {
+    const configFile = path.join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
+    const config: Record<string, boolean> = {
+        CREATE_PR: true,
+        FUNNY_COMMIT: true,
+        AUTO_MERGE: true,
+        BACK_TO_MAIN: true,
+        DELETE_BRANCH: true,
     }
+    try {
+        const configFileContent = await readFile(configFile, 'utf-8')
+        const configLines = configFileContent.split('\n')
+        for (const line of configLines) {
+            const [key, value] = line.split('=')
+            if (key && value) {
+                const trimmedKey = key.trim()
+                const trimmedValue = value.trim()
+                if (trimmedKey in config) {
+                    if (trimmedValue === 'true') {
+                        config[trimmedKey] = true
+                    } else if (trimmedValue === 'false') {
+                        config[trimmedKey] = false
+                    } else {
+                        console.warn(`Invalid value for ${trimmedKey}: ${trimmedValue}. Using default value.`)
+                    }
+                } else {
+                    console.warn(`Unknown config key: ${trimmedKey}. Ignoring.`)
+                }
+            }
+        }
+    } catch (err) {
+        const createConfigFile = await confirm({
+            message: 'Create config file?',
+            default: true,
+        })
+        if (createConfigFile) {
+            const configContent = dedent`CREATE_PR=true
+            FUNNY_COMMIT=true
+            AUTO_MERGE=true
+            BACK_TO_MAIN=true
+            DELETE_BRANCH=true
+            `
+            await Bun.write(configFile, configContent)
+            console.log('Config file created:', configFile)
+            process.exit(0)
+        }
+    }
+    return config
 }
+const config = await loadConfig()
+
+console.log('Config loaded:', config)
 
 async function copyToClipboard(text: string) {
     if (process.platform === 'win32') {
