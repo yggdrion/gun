@@ -10,6 +10,7 @@
     },
     "dependencies": {
         "@inquirer/prompts": "^7.5.1",
+        "@qnighy/dedent": "^0.1.1",
         "open": "^10.1.2",
         "ora": "^8.2.0",
         "prettier": "^3.5.3"
