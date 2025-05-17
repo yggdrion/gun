@@ -188,9 +188,7 @@ const isDefaultBranch = baseBranch === 'main' || baseBranch === 'master' || base
 if (!isDefaultBranch) {
     //console.log('Current branch no base branch')
 
-    const funnyWip = await confirm({ message: 'funny commit?', default: true })
-
-    if (funnyWip) {
+    if (config.FUNNY_COMMIT) {
         const baseDir = path.dirname(process.argv[1])
         const commitMessageFile = `${baseDir}/commit_messages.txt`
         const commitMessageFileLines = await readFile(commitMessageFile, 'utf-8')
