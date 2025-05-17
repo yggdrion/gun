@@ -94,7 +94,7 @@ async function loadConfig() {
 
 const config = await loadConfig()
 
-console.log('Config loaded:', config)
+//console.log('Config loaded:', config)
 
 async function copyToClipboard(text: string) {
     if (process.platform === 'win32') {
@@ -139,6 +139,27 @@ async function checkBinaries() {
 }
 
 await checkBinaries()
+
+async function getCommitMessage(funnyCommit: boolean) {
+    if (!funnyCommit) {
+        return 'wip'
+    }
+    const baseDir = path.dirname(process.argv[1])
+    const commitMessageFile = `${baseDir}/commit_messages.txt`
+    const commitMessageFileLines = await readFile(commitMessageFile, 'utf-8')
+        .then((data) => {
+            const lines = data.split('\n').filter((line) => !line.startsWith('#') && line.trim() !== '')
+            return lines
+        })
+        .catch((err) => {
+            console.error('Error reading file:', err)
+            process.exit(1)
+        })
+    const randomLineIndex = Math.floor(Math.random() * commitMessageFileLines.length)
+    const funnyCommitMessage = commitMessageFileLines[randomLineIndex].trim()
+
+    return funnyCommitMessage
+}
 
 const { values, positionals } = parseArgs({
     args: Bun.argv,
@@ -186,40 +207,17 @@ if (isClean) {
 const isDefaultBranch = baseBranch === 'main' || baseBranch === 'master' || baseBranch === 'bullseye'
 
 if (!isDefaultBranch) {
-    //console.log('Current branch no base branch')
+    const wipIt = await confirm({ message: 'wip?', default: true })
 
-    if (config.FUNNY_COMMIT) {
-        const baseDir = path.dirname(process.argv[1])
-        const commitMessageFile = `${baseDir}/commit_messages.txt`
-        const commitMessageFileLines = await readFile(commitMessageFile, 'utf-8')
-            .then((data) => {
-                const lines = data.split('\n').filter((line) => !line.startsWith('#') && line.trim() !== '')
-                return lines
-            })
-            .catch((err) => {
-                console.error('Error reading file:', err)
-                process.exit(1)
-            })
-        const randomLineIndex = Math.floor(Math.random() * commitMessageFileLines.length)
-        const funnyCommitMessage = commitMessageFileLines[randomLineIndex].trim()
+    const commitMessage = await getCommitMessage(config.FUNNY_COMMIT)
 
+    if (wipIt) {
         await $`git add .`.quiet()
         console.log('📂 Staged all changes')
-        await $`git commit -m "${funnyCommitMessage}"`.quiet()
-        console.log('📝 Commit message:', funnyCommitMessage)
+        await $`git commit -m "${commitMessage}"`.quiet()
+        console.log(`📝 Commit message: ${commitMessage}`)
         await $`git push`.quiet()
         console.log('🚀 Pushed changes to remote')
-    } else {
-        const wipIt = await confirm({ message: 'wip?', default: true })
-
-        if (wipIt) {
-            await $`git add .`.quiet()
-            console.log('📂 Staged all changes')
-            await $`git commit -m "wip"`.quiet()
-            console.log('📝 Commit message: wip')
-            await $`git push`.quiet()
-            console.log('🚀 Pushed changes to remote')
-        }
     }
 }
 
