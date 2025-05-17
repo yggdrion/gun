@@ -82,7 +82,7 @@ async function loadConfig() {
             AUTO_MERGE=${autoMerge}
             BACK_TO_DEFAULT=${backToMain}
             DELETE_BRANCH=${deleteBranch}
-            `
+            `.replace(/^\s*[\r\n]/gm, '')
         await Bun.write(configFile, configContent)
         console.log('Config file created:', configFile)
         process.exit(0)
