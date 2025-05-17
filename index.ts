@@ -34,41 +34,6 @@ const logo = `
 🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
 `
 
-// gun conf is in ~/.gun.conf
-// CREATE_PR=true
-// FUNNY_COMMIT=true
-// AUTO_MERGE=true
-// BACK_TO_MAIN=true
-// DELETE_BRANCH=true
-
-// const configFileExists = await readFile(configFile, 'utf-8')
-//     .then(() => true)
-//     .catch(() => false)
-
-// if (!configFileExists) {
-//     console.log(logo)
-//     const createConfigFile = await confirm({
-//         message: 'Create config file?',
-//         default: true,
-//     })
-//     if (createConfigFile) {
-//         // prettier-ignore
-//         const configContent =
-// `CREATE_PR=true
-// FUNNY_COMMIT=true
-// AUTO_MERGE=true
-// BACK_TO_MAIN=true
-// DELETE_BRANCH=true
-// `
-//         await Bun.write(configFile, configContent)
-//         console.log('Config file created:', configFile)
-//         // exit(0)
-//         exit(0)
-//     } else {
-//         console.log('Config file not created')
-//     }
-// }
-
 async function loadConfig() {
     const configFile = path.join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
     const config: Record<string, boolean> = {
@@ -100,24 +65,33 @@ async function loadConfig() {
             }
         }
     } catch (err) {
-        const createConfigFile = await confirm({
-            message: 'Create config file?',
+        console.log(logo)
+        // make the g un bold
+        //console.log('\x1b[1mgun\x1b[0m setup')
+        console.log('Welcome to \x1b[1mg\x1b[0m(itb)\x1b[1mun\x1b[0m setup')
+        const createPr = await confirm({ message: 'Do you want to create a PR by default?', default: true })
+        const funnyCommit = await confirm({ message: 'Do you want to create funny commit messages?', default: false })
+        const autoMerge = await confirm({ message: 'Do you want to enable automerge at the end?', default: true })
+        const backToMain = await confirm({
+            message: 'Do you want to switch back to main after PR created?',
             default: true,
         })
-        if (createConfigFile) {
-            const configContent = dedent`CREATE_PR=true
-            FUNNY_COMMIT=true
-            AUTO_MERGE=true
-            BACK_TO_MAIN=true
-            DELETE_BRANCH=true
+        const deleteBranch = await confirm({ message: 'Do you want to delete Branch after PR created?', default: true })
+        // prettier-ignore
+        const configContent = dedent`
+            CREATE_PR=${createPr}
+            FUNNY_COMMIT=${funnyCommit}
+            AUTO_MERGE=${autoMerge}
+            BACK_TO_MAIN=${backToMain}
+            DELETE_BRANCH=${deleteBranch}
             `
-            await Bun.write(configFile, configContent)
-            console.log('Config file created:', configFile)
-            process.exit(0)
-        }
+        await Bun.write(configFile, configContent)
+        console.log('Config file created:', configFile)
+        process.exit(0)
     }
     return config
 }
+
 const config = await loadConfig()
 
 console.log('Config loaded:', config)
@@ -165,8 +139,6 @@ async function checkBinaries() {
 }
 
 await checkBinaries()
-
-exit(0)
 
 const { values, positionals } = parseArgs({
     args: Bun.argv,
