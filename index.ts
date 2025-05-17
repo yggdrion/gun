@@ -92,8 +92,6 @@ async function loadConfig() {
 
 const config = await loadConfig()
 
-//console.log('Config loaded:', config)
-
 async function copyToClipboard(text: string) {
     if (process.platform === 'win32') {
         await $`echo ${text} | clip`.quiet().nothrow()
