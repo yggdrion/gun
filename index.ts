@@ -6,8 +6,19 @@ import { $ } from 'bun'
 import { parseArgs } from 'util'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { exit } from 'node:process'
 import { dedent } from '@qnighy/dedent'
+
+const logo = `
+🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
+
+ ██████  ██    ██ ███    ██ 
+██       ██    ██ ████   ██ 
+██   ███ ██    ██ ██ ██  ██ 
+██    ██ ██    ██ ██  ██ ██ 
+ ██████   ██████  ██   ████ 
+
+🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
+`
 
 // https://github.com/SBoudrias/Inquirer.js/issues/1478
 if (process.platform === 'win32') {
@@ -22,17 +33,26 @@ if (process.platform === 'win32') {
         })
 }
 
-const logo = `
-🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
-
- ██████  ██    ██ ███    ██ 
-██       ██    ██ ████   ██ 
-██   ███ ██    ██ ██ ██  ██ 
-██    ██ ██    ██ ██  ██ ██ 
- ██████   ██████  ██   ████ 
-
-🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
-`
+async function checkBinaries() {
+    const requiredCommands = ['git', 'gh']
+    const missingCommands = []
+    for (const command of requiredCommands) {
+        let commandOutput
+        if (process.platform === 'win32') {
+            commandOutput = await $`where ${command}`.quiet().nothrow()
+        } else {
+            commandOutput = await $`command -v ${command}`.quiet().nothrow()
+        }
+        if (commandOutput.exitCode !== 0) {
+            missingCommands.push(command)
+        }
+    }
+    if (missingCommands.length > 0) {
+        console.error('Missing required commands:', missingCommands.join(', '))
+        console.error('Please install and configure them and try again.')
+        process.exit(1)
+    }
+}
 
 async function loadConfig() {
     const configFile = path.join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
@@ -65,6 +85,8 @@ async function loadConfig() {
             }
         }
     } catch (err) {
+        await checkBinaries()
+
         console.log(logo)
         console.log('Welcome to \x1b[1mg\x1b[0m(itb)\x1b[1mun\x1b[0m setup')
         const createPr = await confirm({ message: 'Do you want to create a PR by default?', default: true })
@@ -112,29 +134,6 @@ async function getRandomString(length: number) {
     }
     return result
 }
-
-async function checkBinaries() {
-    const requiredCommands = ['git', 'gh']
-    const missingCommands = []
-    for (const command of requiredCommands) {
-        let commandOutput
-        if (process.platform === 'win32') {
-            commandOutput = await $`where ${command}`.quiet().nothrow()
-        } else {
-            commandOutput = await $`command -v ${command}`.quiet().nothrow()
-        }
-        if (commandOutput.exitCode !== 0) {
-            missingCommands.push(command)
-        }
-    }
-    if (missingCommands.length > 0) {
-        console.error('Missing required commands:', missingCommands.join(', '))
-        console.error('Please install and configure them and try again.')
-        process.exit(1)
-    }
-}
-
-await checkBinaries()
 
 async function getCommitMessage(funnyCommit: boolean) {
     if (!funnyCommit) {
