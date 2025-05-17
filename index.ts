@@ -7,6 +7,9 @@ import { parseArgs } from 'util'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { dedent } from '@qnighy/dedent'
+import { readFileSync, appendFileSync, existsSync } from 'fs'
+import { join, resolve } from 'path'
+import { homedir } from 'os'
 
 const logo = `
 🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
@@ -54,6 +57,41 @@ async function checkBinaries() {
     }
 }
 
+const scriptPath = resolve(Bun.argv[1])
+
+async function ensureAliasExists(aliasName: string, absoluteScriptPath: string) {
+    const shell = process.env.SHELL
+    const home = homedir()
+    const shellName = shell?.split('/').pop()
+
+    let rcFile = ''
+
+    switch (shellName) {
+        case 'zsh':
+            rcFile = join(home, '.zshrc')
+            break
+        case 'bash':
+            rcFile = join(home, '.bashrc')
+            break
+        default:
+            console.error(`Unsupported shell: ${shellName}`)
+            process.exit(1)
+    }
+
+    const aliasLine = `alias ${aliasName}="bun run ${absoluteScriptPath}"`
+
+    if (existsSync(rcFile)) {
+        const contents = readFileSync(rcFile, 'utf-8')
+        if (contents.includes(aliasLine)) {
+            console.log(`Alias "${aliasName}" already exists in ${rcFile}`)
+            return
+        }
+    }
+
+    appendFileSync(rcFile, `\n# Added by Bun script\n${aliasLine}\n`)
+    console.log(`Alias "${aliasName}" added to ${rcFile}`)
+}
+
 async function loadConfig() {
     const configFile = path.join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
     const config: Record<string, boolean> = {
@@ -85,7 +123,11 @@ async function loadConfig() {
             }
         }
     } catch (err) {
+        // gun has never run before
         await checkBinaries()
+        await ensureAliasExists('gun', scriptPath)
+
+        process.exit(1)
 
         console.log(logo)
         console.log('Welcome to \x1b[1mg\x1b[0m(itb)\x1b[1mun\x1b[0m setup')
