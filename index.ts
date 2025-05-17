@@ -66,8 +66,6 @@ async function loadConfig() {
         }
     } catch (err) {
         console.log(logo)
-        // make the g un bold
-        //console.log('\x1b[1mgun\x1b[0m setup')
         console.log('Welcome to \x1b[1mg\x1b[0m(itb)\x1b[1mun\x1b[0m setup')
         const createPr = await confirm({ message: 'Do you want to create a PR by default?', default: true })
         const funnyCommit = await confirm({ message: 'Do you want to create funny commit messages?', default: true })
@@ -178,22 +176,8 @@ if (values.debug) {
     fs.writeFileSync('README.md', `${readme}#`)
 }
 
-const pwdOutput = await $`pwd`.text()
-const pwd = pwdOutput.trim()
-
-// console.log(`pwd: ${pwd}`)
-
-const repoNameOutput = await $`git rev-parse --show-toplevel`.text()
-const repoName = repoNameOutput.trim().split('/').pop()
-
-// console.log(`rep: ${repoName}`)
-
 const currentBranchOutput = await $`git branch --show-current`.text()
 const baseBranch = currentBranchOutput.trim()
-
-// console.log(`current branch: ${baseBranch}`)
-
-// check if status is clean, if clean exit
 
 const statusOutput = await $`git status --porcelain`.text()
 const isClean = statusOutput.trim() === ''
@@ -201,8 +185,6 @@ if (isClean) {
     console.log('Nothing to commit')
     process.exit(0)
 }
-
-// check if currentBranch is a timestamp
 
 const isDefaultBranch = baseBranch === 'main' || baseBranch === 'master' || baseBranch === 'bullseye'
 
