@@ -40,7 +40,7 @@ async function loadConfig() {
         CREATE_PR: true,
         FUNNY_COMMIT: true,
         AUTO_MERGE: true,
-        BACK_TO_MAIN: true,
+        BACK_TO_DEFAULT: true,
         DELETE_BRANCH: true,
     }
     try {
@@ -70,7 +70,7 @@ async function loadConfig() {
         //console.log('\x1b[1mgun\x1b[0m setup')
         console.log('Welcome to \x1b[1mg\x1b[0m(itb)\x1b[1mun\x1b[0m setup')
         const createPr = await confirm({ message: 'Do you want to create a PR by default?', default: true })
-        const funnyCommit = await confirm({ message: 'Do you want to create funny commit messages?', default: false })
+        const funnyCommit = await confirm({ message: 'Do you want to create funny commit messages?', default: true })
         const autoMerge = await confirm({ message: 'Do you want to enable automerge at the end?', default: true })
         const backToMain = await confirm({
             message: 'Do you want to switch back to main after PR created?',
@@ -82,7 +82,7 @@ async function loadConfig() {
             CREATE_PR=${createPr}
             FUNNY_COMMIT=${funnyCommit}
             AUTO_MERGE=${autoMerge}
-            BACK_TO_MAIN=${backToMain}
+            BACK_TO_DEFAULT=${backToMain}
             DELETE_BRANCH=${deleteBranch}
             `
         await Bun.write(configFile, configContent)
@@ -238,17 +238,17 @@ if (isDefaultBranch) {
             required: true,
         })
 
-        const createPr = await confirm({ message: 'Create PR?', default: true })
+        const createPr = await confirm({ message: 'Create PR?', default: config.CREATE_PR })
 
         let enableAutoMerge = false
         if (createPr) {
-            enableAutoMerge = await confirm({ message: 'Enable auto merge?', default: true })
+            enableAutoMerge = await confirm({ message: 'Enable auto merge?', default: config.AUTO_MERGE })
         }
-        const backToDefault = await confirm({ message: `Back to ${baseBranch}?`, default: true })
+        const backToDefault = await confirm({ message: `Back to ${baseBranch}?`, default: config.BACK_TO_DEFAULT })
 
         let deleteBranch = false
         if (backToDefault) {
-            deleteBranch = await confirm({ message: 'Delete branch?', default: true })
+            deleteBranch = await confirm({ message: 'Delete branch?', default: config.DELETE_BRANCH })
         }
 
         await $`git checkout -b ${fixedBranchName}`.quiet()
@@ -287,6 +287,8 @@ if (isDefaultBranch) {
                     console.log('👋 Enabled auto-merge')
                 } else {
                     console.log('👎 Could not enable auto-merge')
+                    console.log(`👎 Auto-merge stdout: ${autoMergeResult.stdout}`)
+                    console.log(`👎 Auto-merge stderr: ${autoMergeResult.stderr}`)
                 }
             }
         }
