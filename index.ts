@@ -159,14 +159,14 @@ async function loadConfig() {
 const config = await loadConfig()
 
 async function copyToClipboard(text: string) {
-    const platformCommands: Record<string, string> = {
-        win32: `echo ${text} | clip`,
-        linux: `echo -n ${text} | xclip -i -selection c`,
-        darwin: `echo ${text} | pbcopy`,
+    if (process.platform === 'win32') {
+        await $`echo ${text} | clip`.quiet().nothrow()
     }
-    const cmd = platformCommands[process.platform]
-    if (cmd) {
-        await $`${cmd}`.quiet().nothrow()
+    if (process.platform === 'linux') {
+        await $`echo -n ${text} | xclip -i -selection c`.quiet().nothrow()
+    }
+    if (process.platform === 'darwin') {
+        await $`echo ${text} | pbcopy`.quiet().nothrow()
     }
 }
 
