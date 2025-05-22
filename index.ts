@@ -57,8 +57,6 @@ async function checkBinaries() {
     }
 }
 
-const scriptPath = resolve(Bun.argv[1])
-
 async function ensureAliasExists(aliasName: string, absoluteScriptPath: string) {
     const shell = process.env.SHELL
     const home = homedir()
@@ -89,7 +87,9 @@ async function ensureAliasExists(aliasName: string, absoluteScriptPath: string) 
     }
 
     appendFileSync(rcFile, `\n# Added by Bun script\n${aliasLine}\n`)
-    console.log(`Alias "${aliasName}" added to ${rcFile}`)
+    console.log(
+        `Alias "${aliasName}" added to ${rcFile} - please restart your terminal or run 'source ${rcFile}' to apply changes.`
+    )
 }
 
 async function loadConfig() {
@@ -125,9 +125,6 @@ async function loadConfig() {
     } catch (err) {
         // gun has never run before
         await checkBinaries()
-        await ensureAliasExists('gun', scriptPath)
-
-        process.exit(1)
 
         console.log(logo)
         console.log('Welcome to \x1b[1mg\x1b[0m(itb)\x1b[1mun\x1b[0m setup')
@@ -149,6 +146,10 @@ async function loadConfig() {
             `.replace(/^\s*[\r\n]/gm, '')
         await Bun.write(configFile, configContent)
         console.log('Config file created:', configFile)
+
+        const scriptPath = resolve(Bun.argv[1])
+        await ensureAliasExists('gun', scriptPath)
+
         process.exit(0)
     }
     return config
