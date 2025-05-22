@@ -1,16 +1,14 @@
 // https://bun.sh/docs/runtime/shell
 // https://github.com/SBoudrias/Inquirer.js
 
-import { input, confirm, select, Separator } from '@inquirer/prompts'
+import { input, confirm } from '@inquirer/prompts'
 import { $ } from 'bun'
 import { parseArgs } from 'util'
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
-import { dedent } from '@qnighy/dedent'
-import dashify from 'dashify'
 import { readFileSync, appendFileSync, existsSync } from 'fs'
-import { join, resolve } from 'path'
+import path, { join, resolve } from 'path'
+import { dedent } from '@qnighy/dedent'
 import { homedir } from 'os'
+import dashify from 'dashify'
 
 const logo = `
 🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
@@ -23,6 +21,9 @@ const logo = `
 
 🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
 `
+
+const defaultBranches = ['main', 'master', 'bullseye']
+const configKeys = ['CREATE_PR', 'FUNNY_COMMIT', 'AUTO_MERGE', 'BACK_TO_DEFAULT', 'DELETE_BRANCH']
 
 // https://github.com/SBoudrias/Inquirer.js/issues/1478
 if (process.platform === 'win32') {
@@ -94,7 +95,7 @@ async function ensureAliasExists(aliasName: string, absoluteScriptPath: string) 
 }
 
 async function loadConfig() {
-    const configFile = path.join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
+    const configFile = join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
     const config: Record<string, boolean> = {
         CREATE_PR: true,
         FUNNY_COMMIT: true,
@@ -103,14 +104,14 @@ async function loadConfig() {
         DELETE_BRANCH: true,
     }
     try {
-        const configFileContent = await readFile(configFile, 'utf-8')
+        const configFileContent = readFileSync(configFile, 'utf-8')
         const configLines = configFileContent.split('\n')
         for (const line of configLines) {
             const [key, value] = line.split('=')
             if (key && value) {
                 const trimmedKey = key.trim()
                 const trimmedValue = value.trim()
-                if (trimmedKey in config) {
+                if (configKeys.includes(trimmedKey)) {
                     if (trimmedValue === 'true') {
                         config[trimmedKey] = true
                     } else if (trimmedValue === 'false') {
@@ -184,16 +185,11 @@ async function getCommitMessage(funnyCommit: boolean) {
         return 'wip'
     }
     const baseDir = path.dirname(process.argv[1])
-    const commitMessageFile = `${baseDir}/commit_messages.txt`
-    const commitMessageFileLines = await readFile(commitMessageFile, 'utf-8')
-        .then((data) => {
-            const lines = data.split('\n').filter((line) => !line.startsWith('#') && line.trim() !== '')
-            return lines
-        })
-        .catch((err) => {
-            console.error('Error reading file:', err)
-            process.exit(1)
-        })
+    const commitMessageFile = join(baseDir, 'commit_messages.txt')
+    const commitMessageFileLines = (() => {
+        const data = readFileSync(commitMessageFile, 'utf-8')
+        return data.split('\n').filter((line) => !line.startsWith('#') && line.trim() !== '')
+    })()
     const randomLineIndex = Math.floor(Math.random() * commitMessageFileLines.length)
     const funnyCommitMessage = commitMessageFileLines[randomLineIndex].trim()
 
@@ -227,7 +223,7 @@ if (isClean) {
     process.exit(0)
 }
 
-const isDefaultBranch = baseBranch === 'main' || baseBranch === 'master' || baseBranch === 'bullseye'
+const isDefaultBranch = defaultBranches.includes(baseBranch)
 
 if (!isDefaultBranch) {
     const wipIt = await confirm({ message: 'wip?', default: true })
@@ -307,7 +303,7 @@ if (isDefaultBranch) {
         console.log('🚀 Pushed branch to remote:', fixedBranchName)
 
         if (createPr) {
-            const outputPrCreate = await $`gh pr create -f -B ${baseBranch}`.nothrow()
+            const outputPrCreate = await $`gh pr create -f -B ${baseBranch}`.nothrow().quiet()
 
             if (outputPrCreate.exitCode !== 0) {
                 console.log('🚨 Could not create PR')
