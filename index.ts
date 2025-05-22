@@ -8,6 +8,7 @@ import { readFileSync, appendFileSync, existsSync } from 'fs'
 import path, { join, resolve } from 'path'
 import { dedent } from '@qnighy/dedent'
 import { homedir } from 'os'
+import dashify from 'dashify'
 
 const logo = `
 🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
@@ -251,8 +252,28 @@ if (isDefaultBranch) {
 
         const fixedBranchName = branchName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
 
+        // $1: insertions, $2: deletions, $3: filename
+        const result = await $`git diff --numstat | awk '
+        {
+          n = split($3, parts, "/");
+          fname = parts[n];
+          sub(/\.[^.]+$/, "", fname);
+          changes = $1 + $2;
+          if (changes > max || NR == 1) {
+            max = changes;
+            best = fname;
+          }
+        }
+        END {
+          print best
+        }'`.quiet()
+
+        const bestFile = result.stdout.toString().trim()
+        console.log(`file with most changes: ${dashify(bestFile)}`)
+
         const commitMessage = await input({
             message: 'Commit message:',
+            default: `refactor(${bestFile}): add changes`,
             required: true,
         })
 
