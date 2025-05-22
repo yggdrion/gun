@@ -282,7 +282,7 @@ if (isDefaultBranch) {
         console.log('🚀 Pushed branch to remote:', fixedBranchName)
 
         if (createPr) {
-            const outputPrCreate = await $`gh pr create -f -B ${baseBranch}`.nothrow()
+            const outputPrCreate = await $`gh pr create -f -B ${baseBranch}`.nothrow().quiet()
 
             if (outputPrCreate.exitCode !== 0) {
                 console.log('🚨 Could not create PR')
