@@ -4,11 +4,9 @@
 import { input, confirm, select, Separator } from '@inquirer/prompts'
 import { $ } from 'bun'
 import { parseArgs } from 'util'
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
-import { dedent } from '@qnighy/dedent'
 import { readFileSync, appendFileSync, existsSync } from 'fs'
-import { join, resolve } from 'path'
+import path, { join, resolve } from 'path'
+import { dedent } from '@qnighy/dedent'
 import { homedir } from 'os'
 
 const logo = `
@@ -102,7 +100,7 @@ async function loadConfig() {
         DELETE_BRANCH: true,
     }
     try {
-        const configFileContent = await readFile(configFile, 'utf-8')
+        const configFileContent = readFileSync(configFile, 'utf-8')
         const configLines = configFileContent.split('\n')
         for (const line of configLines) {
             const [key, value] = line.split('=')
@@ -184,15 +182,10 @@ async function getCommitMessage(funnyCommit: boolean) {
     }
     const baseDir = path.dirname(process.argv[1])
     const commitMessageFile = `${baseDir}/commit_messages.txt`
-    const commitMessageFileLines = await readFile(commitMessageFile, 'utf-8')
-        .then((data) => {
-            const lines = data.split('\n').filter((line) => !line.startsWith('#') && line.trim() !== '')
-            return lines
-        })
-        .catch((err) => {
-            console.error('Error reading file:', err)
-            process.exit(1)
-        })
+    const commitMessageFileLines = (() => {
+        const data = readFileSync(commitMessageFile, 'utf-8')
+        return data.split('\n').filter((line) => !line.startsWith('#') && line.trim() !== '')
+    })()
     const randomLineIndex = Math.floor(Math.random() * commitMessageFileLines.length)
     const funnyCommitMessage = commitMessageFileLines[randomLineIndex].trim()
 
