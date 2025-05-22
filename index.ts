@@ -1,7 +1,7 @@
 // https://bun.sh/docs/runtime/shell
 // https://github.com/SBoudrias/Inquirer.js
 
-import { input, confirm, select, Separator } from '@inquirer/prompts'
+import { input, confirm } from '@inquirer/prompts'
 import { $ } from 'bun'
 import { parseArgs } from 'util'
 import { readFileSync, appendFileSync, existsSync } from 'fs'
@@ -20,6 +20,9 @@ const logo = `
 
 🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫🔫
 `
+
+const defaultBranches = ['main', 'master', 'bullseye']
+const configKeys = ['CREATE_PR', 'FUNNY_COMMIT', 'AUTO_MERGE', 'BACK_TO_DEFAULT', 'DELETE_BRANCH']
 
 // https://github.com/SBoudrias/Inquirer.js/issues/1478
 if (process.platform === 'win32') {
@@ -91,7 +94,7 @@ async function ensureAliasExists(aliasName: string, absoluteScriptPath: string) 
 }
 
 async function loadConfig() {
-    const configFile = path.join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
+    const configFile = join(process.env.HOME || process.env.USERPROFILE || '', '.gun.conf')
     const config: Record<string, boolean> = {
         CREATE_PR: true,
         FUNNY_COMMIT: true,
@@ -107,7 +110,7 @@ async function loadConfig() {
             if (key && value) {
                 const trimmedKey = key.trim()
                 const trimmedValue = value.trim()
-                if (trimmedKey in config) {
+                if (configKeys.includes(trimmedKey)) {
                     if (trimmedValue === 'true') {
                         config[trimmedKey] = true
                     } else if (trimmedValue === 'false') {
@@ -156,14 +159,14 @@ async function loadConfig() {
 const config = await loadConfig()
 
 async function copyToClipboard(text: string) {
-    if (process.platform === 'win32') {
-        await $`echo ${text} | clip`.quiet().nothrow()
+    const platformCommands: Record<string, string> = {
+        win32: `echo ${text} | clip`,
+        linux: `echo -n ${text} | xclip -i -selection c`,
+        darwin: `echo ${text} | pbcopy`,
     }
-    if (process.platform === 'linux') {
-        await $`echo -n ${text} | xclip -i -selection c`.quiet().nothrow()
-    }
-    if (process.platform === 'darwin') {
-        await $`echo ${text} | pbcopy`.quiet().nothrow()
+    const cmd = platformCommands[process.platform]
+    if (cmd) {
+        await $`${cmd}`.quiet().nothrow()
     }
 }
 
@@ -181,7 +184,7 @@ async function getCommitMessage(funnyCommit: boolean) {
         return 'wip'
     }
     const baseDir = path.dirname(process.argv[1])
-    const commitMessageFile = `${baseDir}/commit_messages.txt`
+    const commitMessageFile = join(baseDir, 'commit_messages.txt')
     const commitMessageFileLines = (() => {
         const data = readFileSync(commitMessageFile, 'utf-8')
         return data.split('\n').filter((line) => !line.startsWith('#') && line.trim() !== '')
@@ -219,7 +222,7 @@ if (isClean) {
     process.exit(0)
 }
 
-const isDefaultBranch = baseBranch === 'main' || baseBranch === 'master' || baseBranch === 'bullseye'
+const isDefaultBranch = defaultBranches.includes(baseBranch)
 
 if (!isDefaultBranch) {
     const wipIt = await confirm({ message: 'wip?', default: true })
